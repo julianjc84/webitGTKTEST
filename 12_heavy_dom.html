@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 12: Heavy DOM Update</title>
+<style>
+.card { border: 1px solid #ccc; padding: 10px; margin: 5px; display: inline-block; width: 150px; }
+.card h3 { margin: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Test 12: Heavy DOM Update (like Mainsail UI render)</h1>
+<p id="status">Building DOM...</p>
+<div id="container"></div>
+<script>
+// Simulate Mainsail rendering its full UI at once
+setTimeout(() => {
+    const container = document.getElementById('container');
+    let html = '';
+
+    // Create lots of elements like Mainsail's dashboard
+    for (let i = 0; i < 100; i++) {
+        html += `
+        <div class="card">
+            <h3>Component ${i}</h3>
+            <p>Temp: ${Math.random() * 100}°C</p>
+            <p>Status: Ready</p>
+            <button onclick="alert('clicked ${i}')">Action</button>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+    document.getElementById('status').textContent = 'DOM built with 100 components!';
+}, 1000);
+</script>
+</body>
+</html>

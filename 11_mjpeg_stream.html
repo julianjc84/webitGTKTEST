@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 11: MJPEG Webcam Stream</title></head>
+<body>
+<h1>Test 11: MJPEG Webcam Stream</h1>
+<p>Loading webcam stream from printer (if available)...</p>
+<img id="webcam" src="http://192.168.1.96/webcam/?action=stream" style="max-width:640px;border:1px solid black;">
+<p id="status">Attempting to load stream...</p>
+<script>
+const img = document.getElementById('webcam');
+img.onload = () => document.getElementById('status').textContent = 'Stream loaded!';
+img.onerror = () => document.getElementById('status').textContent = 'Stream failed (webcam may not be configured)';
+</script>
+</body>
+</html>

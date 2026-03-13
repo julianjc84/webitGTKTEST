@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 6: Rapid WebSocket Updates</title></head>
+<body>
+<h1>Test 6: Rapid WebSocket + DOM Updates</h1>
+<p>This simulates Mainsail's real-time updates</p>
+<div id="status">Connecting...</div>
+<div id="updates" style="height:200px;overflow:auto;border:1px solid #ccc;font-family:monospace;font-size:12px;"></div>
+<script>
+const ws = new WebSocket('ws://192.168.1.96:7125/websocket');
+const updates = document.getElementById('updates');
+let msgCount = 0;
+
+ws.onopen = () => {
+    document.getElementById('status').textContent = 'Connected! Subscribing to updates...';
+    // Subscribe to printer objects like Mainsail does
+    ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'printer.objects.subscribe',
+        params: {
+            objects: {
+                toolhead: ['position', 'status'],
+                heater_bed: ['temperature', 'target'],
+                extruder: ['temperature', 'target']
+            }
+        },
+        id: 1
+    }));
+};
+
+ws.onmessage = (e) => {
+    msgCount++;
+    const div = document.createElement('div');
+    div.textContent = msgCount + ': ' + e.data.substring(0, 80);
+    updates.appendChild(div);
+    updates.scrollTop = updates.scrollHeight;
+
+    // Rapid DOM updates like Mainsail
+    document.getElementById('status').textContent = 'Messages: ' + msgCount;
+};
+
+ws.onerror = (e) => {
+    document.getElementById('status').textContent = 'ERROR';
+};
+</script>
+</body>
+</html>

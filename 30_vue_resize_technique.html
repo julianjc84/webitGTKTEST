@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 30: vue-resize technique (object about:blank)</title>
+<style>
+.resize-container {
+    position: relative;
+    width: 300px;
+    height: 200px;
+    border: 2px solid blue;
+    margin: 20px;
+}
+.resize-observer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: transparent;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+}
+.resize-observer object {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: -1;
+}
+</style>
+</head>
+<body>
+<h1>Test 30: vue-resize technique</h1>
+<p>This test uses the exact same technique as vue-resize library:</p>
+<ul>
+    <li>Creates hidden &lt;object&gt; element</li>
+    <li>Sets data="about:blank" (embedded document)</li>
+    <li>Listens for resize on object.contentDocument.defaultView</li>
+</ul>
+<p><b>If this crashes, it confirms vue-resize's technique is the problem.</b></p>
+
+<div id="status">Initializing...</div>
+
+<div class="resize-container" id="container1">
+    Container 1
+    <div class="resize-observer" id="observer1"></div>
+</div>
+
+<div class="resize-container" id="container2">
+    Container 2
+    <div class="resize-observer" id="observer2"></div>
+</div>
+
+<div class="resize-container" id="container3">
+    Container 3
+    <div class="resize-observer" id="observer3"></div>
+</div>
+
+<script>
+// This is the exact technique used by vue-resize
+function addResizeObserver(container, observerDiv, id) {
+    console.log('Setting up vue-resize technique for', id);
+
+    const object = document.createElement('object');
+    object.setAttribute('aria-hidden', 'true');
+    object.setAttribute('tabindex', -1);
+    object.type = 'text/html';
+
+    object.onload = function() {
+        console.log(id + ': object loaded, adding resize listener');
+        try {
+            // This is where vue-resize listens for resize events
+            object.contentDocument.defaultView.addEventListener('resize', function() {
+                console.log(id + ': resize detected!');
+                document.getElementById('status').textContent =
+                    id + ' resized at ' + new Date().toLocaleTimeString();
+            });
+            console.log(id + ': resize listener added successfully');
+        } catch (e) {
+            console.error(id + ': error adding listener', e);
+        }
+    };
+
+    // This is the problematic line - about:blank embedded document
+    object.data = 'about:blank';
+
+    observerDiv.appendChild(object);
+    console.log(id + ': object element appended');
+}
+
+// Set up multiple observers like Mainsail does
+document.getElementById('status').textContent = 'Setting up resize observers...';
+
+addResizeObserver(
+    document.getElementById('container1'),
+    document.getElementById('observer1'),
+    'Observer 1'
+);
+
+addResizeObserver(
+    document.getElementById('container2'),
+    document.getElementById('observer2'),
+    'Observer 2'
+);
+
+addResizeObserver(
+    document.getElementById('container3'),
+    document.getElementById('observer3'),
+    'Observer 3'
+);
+
+document.getElementById('status').textContent = 'Resize observers set up. If you see this, no crash (yet). Try resizing the window.';
+
+// Also test with dynamic creation after a delay
+setTimeout(function() {
+    console.log('Creating more observers dynamically...');
+    for (let i = 4; i <= 10; i++) {
+        const container = document.createElement('div');
+        container.className = 'resize-container';
+        container.id = 'container' + i;
+        container.textContent = 'Container ' + i + ' (dynamic)';
+
+        const observer = document.createElement('div');
+        observer.className = 'resize-observer';
+        observer.id = 'observer' + i;
+        container.appendChild(observer);
+
+        document.body.appendChild(container);
+        addResizeObserver(container, observer, 'Observer ' + i);
+    }
+    document.getElementById('status').textContent = 'All observers created. If you see this, no crash!';
+}, 1000);
+</script>
+</body>
+</html>

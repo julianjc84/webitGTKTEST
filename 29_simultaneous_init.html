@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 29: Simultaneous Initialization (Mainsail Pattern)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vuex/3.6.2/vuex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/resize-observer-polyfill/1.5.1/ResizeObserver.min.js"></script>
+</head>
+<body>
+<h1>Test 29: Simultaneous Initialization</h1>
+<p>This test mimics the exact Mainsail crash pattern:</p>
+<ul>
+    <li>Multiple large Vue.set() calls in quick succession</li>
+    <li>Multiple watchers triggering simultaneously</li>
+    <li>ECharts SVG rendering while state mutates</li>
+    <li>ResizeObserver + IntersectionObserver callbacks</li>
+    <li>All triggered in the same event loop tick</li>
+</ul>
+<div id="app">
+    <div id="status">{{ status }}</div>
+    <button @click="simulateMainsailInit">Simulate Mainsail Init</button>
+    <div v-for="n in 4" :key="n" :ref="'chart' + n" style="width:100%;height:150px;margin:5px 0;border:1px solid #333;"></div>
+    <div id="scroll-container" style="height:200px;overflow:auto;border:2px solid blue;">
+        <div v-for="item in scrollItems" :key="item.id"
+             v-observe="item.id"
+             :style="{height:'50px',background:item.visible?'#4caf50':'#eee',padding:'10px'}">
+            Item {{ item.id }} - {{ item.visible ? 'VISIBLE' : 'hidden' }}
+        </div>
+    </div>
+</div>
+
+<script>
+// Simulate vue-observe-visibility directive
+Vue.directive('observe', {
+    inserted(el, binding, vnode) {
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const itemId = binding.value;
+                vnode.context.updateVisibility(itemId, entry.isIntersecting);
+            });
+        }, { threshold: 0.5 });
+        io.observe(el);
+        el._observer = io;
+    },
+    unbind(el) {
+        if (el._observer) el._observer.disconnect();
+    }
+});
+
+const store = new Vuex.Store({
+    state: {
+        printer: {},
+        tempHistory: { source: [], series: [] },
+        gui: { panels: {} },
+        server: { config: {} }
+    },
+    mutations: {
+        // Exactly like Mainsail's setData - deep Vue.set on large objects
+        setPrinterData(state, payload) {
+            Object.keys(payload).forEach(key => {
+                const value = payload[key];
+                if (typeof value !== 'object' || value === null || !(key in state.printer)) {
+                    Vue.set(state.printer, key, value);
+                    return;
+                }
+                if (typeof value === 'object') {
+                    Object.keys(value).forEach(subkey => {
+                        if (!(key in state.printer)) Vue.set(state.printer, key, {});
+                        Vue.set(state.printer[key], subkey, value[subkey]);
+                    });
+                }
+            });
+        },
+        setTempHistorySource(state, payload) {
+            Vue.set(state.tempHistory, 'source', payload);
+        },
+        setTempHistorySeries(state, payload) {
+            Vue.set(state.tempHistory, 'series', payload);
+        },
+        setGuiPanels(state, payload) {
+            Vue.set(state.gui, 'panels', payload);
+        },
+        setServerConfig(state, payload) {
+            Vue.set(state.server, 'config', payload);
+        }
+    },
+    actions: {
+        // Simulate getData - called with large printer state
+        getData({ commit }, payload) {
+            console.log('getData: committing large printer state');
+            commit('setPrinterData', payload);
+        },
+        // Simulate tempHistory/init - called with large temp history
+        initTempHistory({ commit }, payload) {
+            console.log('initTempHistory: processing', payload.length, 'items');
+            commit('setTempHistorySource', payload);
+            commit('setTempHistorySeries', [
+                { name: 'extruder-temperature', type: 'line', encode: { x: 'date', y: 'extruder-temperature' }},
+                { name: 'heater_bed-temperature', type: 'line', encode: { x: 'date', y: 'heater_bed-temperature' }}
+            ]);
+        },
+        // Simulate gui/init
+        initGui({ commit }) {
+            console.log('initGui: setting panel config');
+            commit('setGuiPanels', {
+                desktop: { col1: ['temperature', 'webcam'], col2: ['toolhead', 'console'] }
+            });
+        },
+        // Simulate server/init
+        initServer({ commit }) {
+            console.log('initServer: setting config');
+            commit('setServerConfig', {
+                temperature_store_size: 1200,
+                gcode_store_size: 1000
+            });
+        }
+    }
+});
+
+const app = new Vue({
+    el: '#app',
+    store,
+    data: {
+        status: 'Ready to test',
+        charts: [],
+        resizeObservers: [],
+        scrollItems: Array.from({length: 50}, (_, i) => ({ id: i, visible: false }))
+    },
+    computed: {
+        source() { return this.$store.state.tempHistory.source; },
+        series() { return this.$store.state.tempHistory.series; },
+        printer() { return this.$store.state.printer; }
+    },
+    watch: {
+        // Multiple watchers like Mainsail has
+        source: {
+            handler(newVal) {
+                if (!newVal.length) return;
+                console.log('Watch source: updating charts with', newVal.length, 'points');
+                this.updateCharts(newVal);
+            }
+        },
+        printer: {
+            handler(newVal) {
+                console.log('Watch printer: state changed, keys:', Object.keys(newVal).length);
+            },
+            deep: true
+        },
+        'printer.extruder': {
+            handler(newVal) {
+                if (newVal) console.log('Watch printer.extruder:', newVal.temperature);
+            }
+        },
+        'printer.heater_bed': {
+            handler(newVal) {
+                if (newVal) console.log('Watch printer.heater_bed:', newVal.temperature);
+            }
+        }
+    },
+    methods: {
+        updateVisibility(itemId, visible) {
+            const item = this.scrollItems.find(i => i.id === itemId);
+            if (item) item.visible = visible;
+        },
+        initCharts() {
+            for (let i = 1; i <= 4; i++) {
+                const el = this.$refs['chart' + i][0];
+                const chart = echarts.init(el, null, { renderer: 'svg' });
+                chart.setOption({
+                    animation: false,
+                    grid: { top: 10, right: 10, bottom: 20, left: 40 },
+                    xAxis: { type: 'time' },
+                    yAxis: { type: 'value' },
+                    dataset: { source: [] },
+                    series: [
+                        { type: 'line', encode: { x: 'date', y: 'extruder-temperature' }, showSymbol: false, lineStyle: { color: '#F44336' }},
+                        { type: 'line', encode: { x: 'date', y: 'heater_bed-temperature' }, showSymbol: false, lineStyle: { color: '#2196F3' }}
+                    ]
+                });
+                this.charts.push(chart);
+
+                // ResizeObserver like Mainsail
+                const ro = new ResizeObserver(() => {
+                    chart.resize();
+                });
+                ro.observe(el);
+                this.resizeObservers.push(ro);
+            }
+        },
+        updateCharts(source) {
+            this.charts.forEach((chart, i) => {
+                chart.setOption({ dataset: { source: source }});
+            });
+        },
+        simulateMainsailInit() {
+            this.status = 'Simulating Mainsail init sequence...';
+
+            // Create large data payloads
+            const maxHistory = 1200;
+            const now = new Date();
+
+            // Large printer state (like printer.objects.subscribe response)
+            const printerState = {
+                extruder: { temperature: 200, target: 200, power: 0.5 },
+                heater_bed: { temperature: 60, target: 60, power: 0.3 },
+                toolhead: { position: [150, 150, 10, 0], axis_minimum: [0, 0, 0], axis_maximum: [300, 300, 400] },
+                print_stats: { state: 'standby', filename: '', total_duration: 0 },
+                configfile: { settings: { printer: { kinematics: 'corexy' }}},
+                gcode_move: { speed: 100, extrude_factor: 1.0 },
+                fan: { speed: 0 },
+                motion_report: { live_position: [150, 150, 10, 0], live_velocity: 0, live_extruder_velocity: 0 }
+            };
+
+            // Large temperature history
+            const tempHistory = [];
+            for (let i = 0; i < maxHistory; i++) {
+                tempHistory.push({
+                    date: new Date(now.getTime() - 1000 * (maxHistory - i)),
+                    'extruder-temperature': 200 + Math.random() * 5,
+                    'extruder-target': 200,
+                    'heater_bed-temperature': 60 + Math.random() * 2,
+                    'heater_bed-target': 60
+                });
+            }
+
+            console.log('=== STARTING SIMULTANEOUS INIT ===');
+            console.log('This mimics the exact Mainsail crash point');
+
+            // ALL OF THESE HAPPEN IN THE SAME EVENT LOOP TICK
+            // Just like when Mainsail receives WebSocket responses
+            this.$store.dispatch('initServer');
+            this.$store.dispatch('initGui');
+            this.$store.dispatch('getData', printerState);
+            this.$store.dispatch('initTempHistory', tempHistory);
+
+            console.log('=== INIT COMPLETE ===');
+            this.status = 'Init complete - if you see this, no crash!';
+        }
+    },
+    mounted() {
+        this.$nextTick(() => {
+            this.initCharts();
+            this.status = 'Charts initialized. Click button or wait 2s for auto-test.';
+
+            // Auto-trigger after 2 seconds
+            setTimeout(() => {
+                if (this.status.includes('Click')) {
+                    this.simulateMainsailInit();
+                }
+            }, 2000);
+        });
+    },
+    beforeDestroy() {
+        this.charts.forEach(chart => chart?.dispose());
+        this.resizeObservers.forEach(ro => ro.disconnect());
+    }
+});
+</script>
+</body>
+</html>

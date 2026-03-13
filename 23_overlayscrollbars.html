@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 23: OverlayScrollbars</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.4.5/styles/overlayscrollbars.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.4.5/browser/overlayscrollbars.browser.es6.min.js"></script>
+</head>
+<body>
+<h1>Test 23: OverlayScrollbars (like Mainsail uses)</h1>
+<div id="scroll-container" style="height:300px;width:100%;border:2px solid blue;">
+    <div id="content"></div>
+</div>
+<div id="status">Initializing OverlayScrollbars...</div>
+
+<script type="module">
+import { OverlayScrollbars } from 'https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.4.5/browser/overlayscrollbars.browser.es6.min.js';
+
+// Generate lots of content
+const content = document.getElementById('content');
+for (let i = 0; i < 100; i++) {
+    content.innerHTML += `<div style="padding:10px;border-bottom:1px solid #ccc;">Item ${i} - Some content here with more text to make it longer</div>`;
+}
+
+// Initialize OverlayScrollbars like Mainsail
+const osInstance = OverlayScrollbars(document.getElementById('scroll-container'), {
+    scrollbars: {
+        visibility: 'auto',
+        autoHide: 'move'
+    }
+});
+
+document.getElementById('status').textContent = 'OverlayScrollbars initialized! Try scrolling.';
+
+// Simulate rapid content updates like Mainsail
+setInterval(() => {
+    const items = content.querySelectorAll('div');
+    if (items.length > 0) {
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        randomItem.textContent = `Updated at ${new Date().toLocaleTimeString()} - Random: ${Math.random()}`;
+    }
+}, 100);
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 21: Large JSON Processing</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+<div id="app">
+    <h1>Test 21: Large JSON Processing (like Mainsail init)</h1>
+    <div>Status: {{ status }}</div>
+    <div>Data size: {{ dataSize }} bytes</div>
+    <div>Objects: {{ objectCount }}</div>
+    <div>Parse time: {{ parseTime }}ms</div>
+    <div style="height:300px;overflow:auto;border:1px solid #ccc;">
+        <div v-for="(val, key) in displayData" :key="key">
+            {{ key }}: {{ JSON.stringify(val).substring(0, 100) }}
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive } = Vue;
+
+createApp({
+    setup() {
+        const status = ref('Generating large data...');
+        const dataSize = ref(0);
+        const objectCount = ref(0);
+        const parseTime = ref(0);
+        const displayData = reactive({});
+
+        // Simulate the ~350KB Moonraker response
+        setTimeout(() => {
+            status.value = 'Building 350KB JSON like Moonraker state dump...';
+
+            // Generate a large JSON object similar to Moonraker's printer.objects.subscribe response
+            const largeData = {
+                result: {
+                    status: {}
+                }
+            };
+
+            // Add many objects like Moonraker does
+            for (let i = 0; i < 50; i++) {
+                largeData.result.status[`heater_${i}`] = {
+                    temperature: Math.random() * 300,
+                    target: Math.random() * 300,
+                    power: Math.random(),
+                    history: Array(100).fill(0).map(() => Math.random() * 300)
+                };
+            }
+
+            // Add toolhead with position history
+            largeData.result.status.toolhead = {
+                position: [0, 0, 0, 0],
+                velocity: 0,
+                status: 'Ready',
+                history: Array(1000).fill(0).map(() => ({
+                    x: Math.random() * 500,
+                    y: Math.random() * 500,
+                    z: Math.random() * 500
+                }))
+            };
+
+            // Add gcode_move
+            largeData.result.status.gcode_move = {
+                speed_factor: 1.0,
+                extrude_factor: 1.0,
+                gcode_position: [0, 0, 0, 0],
+                homing_origin: [0, 0, 0, 0]
+            };
+
+            // Add lots of config data
+            for (let i = 0; i < 100; i++) {
+                largeData.result.status[`config_${i}`] = {
+                    setting1: 'value'.repeat(50),
+                    setting2: Array(50).fill('test'),
+                    nested: { a: 1, b: 2, c: { d: 3, e: Array(20).fill({x:1,y:2}) }}
+                };
+            }
+
+            const jsonString = JSON.stringify(largeData);
+            dataSize.value = jsonString.length;
+            status.value = `Generated ${jsonString.length} bytes. Parsing...`;
+
+            // Now parse it like Mainsail would receive from WebSocket
+            setTimeout(() => {
+                const startTime = performance.now();
+
+                try {
+                    const parsed = JSON.parse(jsonString);
+                    parseTime.value = (performance.now() - startTime).toFixed(2);
+                    objectCount.value = Object.keys(parsed.result.status).length;
+
+                    // Update reactive state like Mainsail does
+                    Object.keys(parsed.result.status).slice(0, 20).forEach(key => {
+                        displayData[key] = parsed.result.status[key];
+                    });
+
+                    status.value = 'SUCCESS! Large JSON parsed and displayed.';
+                } catch (e) {
+                    status.value = 'Parse error: ' + e.message;
+                }
+            }, 100);
+
+        }, 500);
+
+        return { status, dataSize, objectCount, parseTime, displayData };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>

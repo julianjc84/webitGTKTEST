@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 8: Three.js 3D</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body style="margin:0;">
+<h1 style="position:absolute;z-index:1;color:white;margin:10px;">Test 8: Three.js 3D (like Mainsail preview)</h1>
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight - 50);
+document.body.appendChild(renderer.domElement);
+
+// Create a cube like printer bed
+const geometry = new THREE.BoxGeometry(2, 0.1, 2);
+const material = new THREE.MeshBasicMaterial({color: 0x444444, wireframe: true});
+const cube = new THREE.Mesh(geometry, material);
+scene.add(cube);
+
+// Add a "print" object
+const printGeom = new THREE.ConeGeometry(0.5, 1, 8);
+const printMat = new THREE.MeshBasicMaterial({color: 0x00ff00});
+const print = new THREE.Mesh(printGeom, printMat);
+print.position.y = 0.5;
+scene.add(print);
+
+camera.position.z = 5;
+camera.position.y = 2;
+camera.lookAt(0, 0, 0);
+
+function animate() {
+    requestAnimationFrame(animate);
+    cube.rotation.y += 0.01;
+    print.rotation.y += 0.02;
+    renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 27: Mainsail-Exact (SVG ECharts + Vue Reactivity)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vuex/3.6.2/vuex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/resize-observer-polyfill/1.5.1/ResizeObserver.min.js"></script>
+</head>
+<body>
+<h1>Test 27: Mainsail-Exact Pattern</h1>
+<p>This test mimics exactly how Mainsail works:</p>
+<ul>
+    <li>ECharts with SVG renderer (not canvas)</li>
+    <li>Large initial data (1200 points like temperature history)</li>
+    <li>Vue 2.7 + Vuex reactivity</li>
+    <li>Multiple charts updating simultaneously</li>
+    <li>Vue.set() for reactive updates</li>
+</ul>
+<div id="app">
+    <div id="status">{{ status }}</div>
+    <div v-for="(chartData, index) in charts" :key="index"
+         :id="'chart-' + index"
+         style="width:100%;height:200px;margin:10px 0;"></div>
+</div>
+
+<script>
+// Create Vuex store like Mainsail
+const store = new Vuex.Store({
+    state: {
+        tempHistory: {
+            source: [],
+            series: []
+        }
+    },
+    mutations: {
+        setInitSource(state, payload) {
+            // Exactly like Mainsail: Vue.set on large array
+            Vue.set(state.tempHistory, 'source', payload);
+        },
+        addToSource(state, payload) {
+            // Exactly like Mainsail
+            const newSource = [...state.tempHistory.source];
+            newSource.push(payload.data);
+            while (newSource.length > payload.maxHistory) newSource.splice(0, 1);
+            Vue.set(state.tempHistory, 'source', newSource);
+        },
+        setInitSeries(state, payload) {
+            Vue.set(state.tempHistory, 'series', payload);
+        }
+    },
+    actions: {
+        initTempHistory({ commit }) {
+            console.log('Initializing temperature history (like Mainsail)...');
+            const maxHistory = 1200; // Mainsail default
+            const now = new Date();
+
+            // Create large initial dataset (like server.temperature_store response)
+            const tempDataset = [];
+            for (let i = 0; i < maxHistory; i++) {
+                tempDataset.push({
+                    date: new Date(now.getTime() - 1000 * (maxHistory - i)),
+                    'extruder-temperature': 200 + Math.random() * 5,
+                    'extruder-target': 200,
+                    'extruder-power': Math.random(),
+                    'heater_bed-temperature': 60 + Math.random() * 2,
+                    'heater_bed-target': 60,
+                    'heater_bed-power': Math.random() * 0.3,
+                    'chamber-temperature': 40 + Math.random() * 2,
+                });
+            }
+
+            // Set initial data (triggers Vue reactivity)
+            commit('setInitSource', tempDataset);
+
+            // Create series config (like Mainsail)
+            const series = [
+                { name: 'extruder-temperature', type: 'line', encode: { x: 'date', y: 'extruder-temperature' }, lineStyle: { color: '#F44336' } },
+                { name: 'extruder-target', type: 'line', encode: { x: 'date', y: 'extruder-target' }, lineStyle: { color: '#F44336', width: 0 }, areaStyle: { color: '#F44336', opacity: 0.1 } },
+                { name: 'heater_bed-temperature', type: 'line', encode: { x: 'date', y: 'heater_bed-temperature' }, lineStyle: { color: '#2196F3' } },
+                { name: 'heater_bed-target', type: 'line', encode: { x: 'date', y: 'heater_bed-target' }, lineStyle: { color: '#2196F3', width: 0 }, areaStyle: { color: '#2196F3', opacity: 0.1 } },
+                { name: 'chamber-temperature', type: 'line', encode: { x: 'date', y: 'chamber-temperature' }, lineStyle: { color: '#4CAF50' } },
+            ];
+            commit('setInitSeries', series);
+
+            console.log('Temperature history initialized with', maxHistory, 'points');
+        },
+        updateSource({ commit, state }) {
+            const maxHistory = 1200;
+            const now = new Date();
+
+            // Add new data point (like Mainsail's setInterval)
+            commit('addToSource', {
+                data: {
+                    date: now,
+                    'extruder-temperature': 200 + Math.random() * 5,
+                    'extruder-target': 200,
+                    'extruder-power': Math.random(),
+                    'heater_bed-temperature': 60 + Math.random() * 2,
+                    'heater_bed-target': 60,
+                    'heater_bed-power': Math.random() * 0.3,
+                    'chamber-temperature': 40 + Math.random() * 2,
+                },
+                maxHistory: maxHistory
+            });
+        }
+    }
+});
+
+// Vue app with multiple charts (like Mainsail dashboard)
+const app = new Vue({
+    el: '#app',
+    store,
+    data: {
+        status: 'Initializing...',
+        charts: [0, 1, 2], // Multiple charts like Mainsail panels
+        echartInstances: [],
+        resizeObservers: []
+    },
+    computed: {
+        source() {
+            return this.$store.state.tempHistory.source;
+        },
+        series() {
+            return this.$store.state.tempHistory.series;
+        }
+    },
+    watch: {
+        // Watch source like TempChart does
+        source: {
+            handler(newVal) {
+                if (!newVal.length) return;
+                this.updateCharts(newVal);
+            },
+            deep: false
+        }
+    },
+    methods: {
+        initCharts() {
+            this.charts.forEach((_, index) => {
+                const container = document.getElementById('chart-' + index);
+                if (!container) return;
+
+                // Use SVG renderer like Mainsail
+                const chart = echarts.init(container, null, { renderer: 'svg' });
+
+                const option = {
+                    animation: false, // Like Mainsail
+                    tooltip: { trigger: 'axis' },
+                    grid: { top: 35, right: 25, bottom: 30, left: 40 },
+                    xAxis: { type: 'time', splitNumber: 5 },
+                    yAxis: [
+                        { type: 'value', min: 0, max: 300 },
+                        { type: 'value', min: 0, max: 1 }
+                    ],
+                    dataset: { source: [] },
+                    series: this.series.map(s => ({
+                        ...s,
+                        animation: false,
+                        showSymbol: false
+                    }))
+                };
+
+                chart.setOption(option);
+                this.echartInstances.push(chart);
+
+                // Add ResizeObserver like Mainsail
+                const ro = new ResizeObserver(() => {
+                    chart.resize();
+                });
+                ro.observe(container);
+                this.resizeObservers.push(ro);
+            });
+        },
+        updateCharts(source) {
+            // Update all charts with new data (like Mainsail)
+            this.echartInstances.forEach(chart => {
+                if (chart && !chart.isDisposed()) {
+                    chart.setOption({
+                        dataset: { source: source }
+                    });
+                }
+            });
+            this.status = `Updated ${this.echartInstances.length} charts with ${source.length} points at ${new Date().toLocaleTimeString()}`;
+        }
+    },
+    mounted() {
+        this.status = 'Vue mounted, initializing charts...';
+
+        // Initialize charts
+        this.$nextTick(() => {
+            this.initCharts();
+            this.status = 'Charts initialized, loading temperature history...';
+
+            // Init temp history (large data load)
+            this.$store.dispatch('initTempHistory');
+
+            // Start update interval like Mainsail (every 1000ms)
+            setInterval(() => {
+                this.$store.dispatch('updateSource');
+            }, 1000);
+        });
+    },
+    beforeDestroy() {
+        // Cleanup like Mainsail
+        this.echartInstances.forEach(chart => {
+            if (chart) chart.dispose();
+        });
+        this.resizeObservers.forEach(ro => ro.disconnect());
+    }
+});
+
+console.log('Mainsail-exact test loaded');
+</script>
+</body>
+</html>

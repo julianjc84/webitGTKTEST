@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 22: WebSocket from Printer Origin</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+<div id="app">
+    <h1>Test 22: Real WebSocket (from printer origin)</h1>
+    <p><strong>Upload this file to your printer's config folder and access it via http://192.168.1.96/test.html</strong></p>
+    <div>Status: {{ status }}</div>
+    <div>Messages: {{ messageCount }}</div>
+    <div>Total data: {{ (totalBytes/1024).toFixed(1) }}KB</div>
+    <div>Largest message: {{ (largestMsg/1024).toFixed(1) }}KB</div>
+    <div style="height:200px;overflow:auto;border:1px solid #ccc;font-size:11px;font-family:monospace;background:#1e1e1e;color:#0f0;padding:5px;">
+        <div v-for="(msg, i) in messages" :key="i">{{ msg }}</div>
+    </div>
+    <h3>Live Data</h3>
+    <div class="grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div v-for="(val, key) in temps" :key="key" style="background:#333;padding:10px;color:white;">
+            {{ key }}: {{ val.toFixed(1) }}°C
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive } = Vue;
+
+createApp({
+    setup() {
+        const status = ref('Connecting...');
+        const messageCount = ref(0);
+        const totalBytes = ref(0);
+        const largestMsg = ref(0);
+        const messages = ref([]);
+        const temps = reactive({});
+
+        // Connect to Moonraker - same origin so should work
+        const wsUrl = 'ws://' + window.location.hostname + ':7125/websocket';
+        messages.value.push('Connecting to: ' + wsUrl);
+
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            status.value = 'Connected! Subscribing to ALL objects...';
+            messages.value.push('WebSocket OPEN');
+
+            // Subscribe to everything like Mainsail does
+            ws.send(JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'printer.objects.subscribe',
+                params: { objects: null },
+                id: 1
+            }));
+        };
+
+        ws.onmessage = (e) => {
+            messageCount.value++;
+            totalBytes.value += e.data.length;
+            if (e.data.length > largestMsg.value) largestMsg.value = e.data.length;
+
+            messages.value.push(`[${messageCount.value}] ${e.data.length} bytes`);
+            if (messages.value.length > 30) messages.value.shift();
+
+            // Parse and update temps like Mainsail
+            try {
+                const data = JSON.parse(e.data);
+                const st = data.result?.status || data.params?.[0];
+                if (st) {
+                    if (st.extruder?.temperature) temps.Extruder = st.extruder.temperature;
+                    if (st.heater_bed?.temperature) temps.Bed = st.heater_bed.temperature;
+                    // Add more as they come in
+                    Object.keys(st).forEach(k => {
+                        if (st[k]?.temperature !== undefined) {
+                            temps[k] = st[k].temperature;
+                        }
+                    });
+                }
+                status.value = `Running - ${messageCount.value} msgs, ${(totalBytes.value/1024).toFixed(0)}KB`;
+            } catch(e) {}
+        };
+
+        ws.onerror = () => {
+            status.value = 'WebSocket Error';
+            messages.value.push('ERROR');
+        };
+
+        ws.onclose = () => {
+            status.value = 'Disconnected';
+            messages.value.push('CLOSED');
+        };
+
+        return { status, messageCount, totalBytes, largestMsg, messages, temps };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>

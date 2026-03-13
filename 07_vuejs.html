@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 7: Vue.js</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+<h1>Test 7: Vue.js Reactive Framework</h1>
+<div id="app">
+  <p>Counter: {{ count }}</p>
+  <button @click="count++">Increment</button>
+  <ul>
+    <li v-for="item in items" :key="item">{{ item }}</li>
+  </ul>
+</div>
+<script>
+const { createApp, ref } = Vue;
+createApp({
+  setup() {
+    const count = ref(0);
+    const items = ref(['Item 1', 'Item 2', 'Item 3']);
+    return { count, items };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

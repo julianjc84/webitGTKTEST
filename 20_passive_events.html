@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 20: Non-Passive Event Listeners</title></head>
+<body>
+<h1>Test 20: Non-Passive Event Listeners (like Mainsail)</h1>
+<div id="browser">Detecting browser...</div>
+<div id="status">Adding scroll-blocking event listeners...</div>
+<div id="scroll" style="height:300px;overflow:auto;border:2px solid blue;">
+    <div style="height:2000px;background:linear-gradient(white,blue);">
+        <p>Scroll me! This div has NON-PASSIVE scroll listeners like Mainsail.</p>
+    </div>
+</div>
+
+<script>
+// Show user agent - this is what Mainsail checks
+document.getElementById('browser').innerHTML = '<strong>User Agent:</strong> ' + navigator.userAgent;
+
+const scrollDiv = document.getElementById('scroll');
+
+// Add NON-PASSIVE event listeners like Mainsail does (causes the violations)
+scrollDiv.addEventListener('wheel', function(e) {
+    // Non-passive - can call preventDefault
+    console.log('wheel event');
+}, { passive: false });
+
+scrollDiv.addEventListener('touchstart', function(e) {
+    console.log('touchstart event');
+}, { passive: false });
+
+scrollDiv.addEventListener('touchmove', function(e) {
+    console.log('touchmove event');
+}, { passive: false });
+
+scrollDiv.addEventListener('scroll', function(e) {
+    console.log('scroll event');
+}, { passive: false });
+
+// Add multiple listeners like Mainsail's complex UI
+for (let i = 0; i < 14; i++) {
+    document.addEventListener('wheel', function(e) {}, { passive: false });
+}
+
+document.getElementById('status').textContent = 'Added 14+ non-passive event listeners. Try scrolling. If this crashes, we found the bug!';
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 4: WebGL</title></head>
+<body>
+<h1>Test 4: WebGL (GPU Accelerated)</h1>
+<canvas id="glcanvas" width="400" height="300" style="border:1px solid black;"></canvas>
+<div id="status"></div>
+<script>
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+if (!gl) {
+    document.getElementById('status').textContent = 'WebGL not supported!';
+} else {
+    gl.clearColor(0.2, 0.5, 0.8, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    document.getElementById('status').textContent = 'WebGL working! Renderer: ' + gl.getParameter(gl.RENDERER);
+}
+</script>
+</body>
+</html>

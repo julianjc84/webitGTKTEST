@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 17: Fluidd Direct</title></head>
+<body>
+<h1>Test 17: Loading Fluidd</h1>
+<p>Trying common Fluidd ports...</p>
+<iframe id="frame" width="100%" height="600" style="border:1px solid black;"></iframe>
+<div id="status"></div>
+<script>
+// Try common Fluidd ports
+const ports = [80, 4408, 8080];
+let currentPort = 0;
+
+function tryPort() {
+    if (currentPort >= ports.length) {
+        document.getElementById('status').textContent = 'No Fluidd found on common ports. You may not have Fluidd installed.';
+        return;
+    }
+    const port = ports[currentPort];
+    document.getElementById('status').textContent = 'Trying port ' + port + '...';
+    document.getElementById('frame').src = 'http://192.168.1.96:' + port + '/';
+    currentPort++;
+}
+
+document.getElementById('frame').onerror = tryPort;
+setTimeout(tryPort, 100);
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 25: ResizeObserver Polyfill</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/resize-observer-polyfill/1.5.1/ResizeObserver.min.js"></script>
+</head>
+<body>
+<h1>Test 25: ResizeObserver (like Mainsail uses)</h1>
+<div id="status">Setting up ResizeObservers...</div>
+<div id="container" style="display:flex;flex-wrap:wrap;"></div>
+
+<script>
+const container = document.getElementById('container');
+const observers = [];
+
+// Create many observed elements like Mainsail does
+for (let i = 0; i < 50; i++) {
+    const div = document.createElement('div');
+    div.id = 'box-' + i;
+    div.style.cssText = 'width:100px;height:100px;margin:5px;background:#333;color:white;display:flex;align-items:center;justify-content:center;transition:all 0.3s;';
+    div.textContent = i;
+    container.appendChild(div);
+
+    // Observe each element
+    const ro = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            entry.target.textContent = `${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}`;
+        }
+    });
+    ro.observe(div);
+    observers.push(ro);
+}
+
+document.getElementById('status').textContent = `Created ${observers.length} ResizeObservers. Resizing...`;
+
+// Randomly resize elements like Mainsail's responsive layout
+setInterval(() => {
+    const boxes = container.querySelectorAll('div');
+    const randomBox = boxes[Math.floor(Math.random() * boxes.length)];
+    randomBox.style.width = (50 + Math.random() * 150) + 'px';
+    randomBox.style.height = (50 + Math.random() * 150) + 'px';
+}, 100);
+</script>
+</body>
+</html>

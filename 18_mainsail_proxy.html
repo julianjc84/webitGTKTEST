@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 18: Mainsail via Fetch Proxy</title>
+</head>
+<body>
+<h1>Test 18: Loading Mainsail HTML via Fetch</h1>
+<div id="status">Fetching Mainsail...</div>
+<div id="container"></div>
+<script>
+// Fetch Mainsail's HTML and inject it (bypasses iframe restrictions)
+fetch('http://192.168.1.96/')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('status').textContent = 'Mainsail HTML fetched, size: ' + html.length + ' bytes';
+        // Show first 500 chars
+        document.getElementById('container').innerHTML = '<pre>' + html.substring(0, 500).replace(/</g, '&lt;') + '...</pre>';
+
+        // Now try to actually render it
+        setTimeout(() => {
+            document.getElementById('status').textContent += ' - Attempting to render...';
+            document.open();
+            document.write(html);
+            document.close();
+        }, 2000);
+    })
+    .catch(err => {
+        document.getElementById('status').textContent = 'Fetch failed: ' + err;
+    });
+</script>
+</body>
+</html>

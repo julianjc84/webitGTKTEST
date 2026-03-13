@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 19: Large Moonraker State</title>
+</head>
+<body>
+<h1>Test 19: Large Moonraker State Dump</h1>
+<div id="status">Starting...</div>
+<div id="log" style="height:400px;overflow:auto;border:1px solid #ccc;font-family:monospace;font-size:12px;padding:10px;background:#111;color:#0f0;"></div>
+
+<script>
+const log = document.getElementById('log');
+const status = document.getElementById('status');
+
+function addLog(msg) {
+    log.innerHTML += msg + '<br>';
+    log.scrollTop = log.scrollHeight;
+}
+
+addLog('Script started');
+addLog('Attempting WebSocket connection to ws://192.168.1.96:7125/websocket');
+
+status.textContent = 'Connecting to Moonraker...';
+
+try {
+    const ws = new WebSocket('ws://192.168.1.96:7125/websocket');
+
+    ws.onopen = function() {
+        addLog('WebSocket OPEN');
+        status.textContent = 'Connected! Subscribing to all objects...';
+
+        // Subscribe to everything like Mainsail
+        const msg = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'printer.objects.subscribe',
+            params: { objects: null },
+            id: 1
+        });
+        addLog('Sending: ' + msg);
+        ws.send(msg);
+    };
+
+    ws.onmessage = function(e) {
+        addLog('Received (' + e.data.length + ' bytes): ' + e.data.substring(0, 100) + '...');
+        status.textContent = 'Received ' + e.data.length + ' bytes';
+    };
+
+    ws.onerror = function(e) {
+        addLog('WebSocket ERROR: ' + JSON.stringify(e));
+        status.textContent = 'WebSocket Error';
+    };
+
+    ws.onclose = function(e) {
+        addLog('WebSocket CLOSED: code=' + e.code + ', reason=' + e.reason);
+        status.textContent = 'Disconnected';
+    };
+
+} catch(err) {
+    addLog('Exception: ' + err.message);
+    status.textContent = 'Error: ' + err.message;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>System & Browser Information</title>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+}
+h1 {
+    color: #4CAF50;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 10px;
+}
+h2 {
+    color: #2196F3;
+    margin-top: 30px;
+}
+.info-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px 20px;
+    background: #16213e;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+.label {
+    color: #888;
+    font-weight: bold;
+}
+.value {
+    color: #fff;
+    word-break: break-all;
+}
+.warning {
+    background: #ff9800;
+    color: #000;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+.success {
+    background: #4CAF50;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+.error {
+    background: #f44336;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+.test-result {
+    padding: 5px 10px;
+    border-radius: 3px;
+    display: inline-block;
+    margin: 2px 0;
+}
+.pass { background: #4CAF50; }
+.fail { background: #f44336; }
+canvas {
+    border: 1px solid #333;
+    margin: 10px 0;
+}
+#gpu-info {
+    font-family: monospace;
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<h1>System & Browser Information</h1>
+<p>Diagnostic page for WebKitGTK crash investigation</p>
+
+<div id="browser-warning"></div>
+
+<h2>Browser Information</h2>
+<div class="info-grid" id="browser-info">
+    <span class="label">User Agent:</span>
+    <span class="value" id="user-agent">Loading...</span>
+
+    <span class="label">Browser Engine:</span>
+    <span class="value" id="browser-engine">Loading...</span>
+
+    <span class="label">Platform:</span>
+    <span class="value" id="platform">Loading...</span>
+
+    <span class="label">Language:</span>
+    <span class="value" id="language">Loading...</span>
+
+    <span class="label">Cookies Enabled:</span>
+    <span class="value" id="cookies">Loading...</span>
+
+    <span class="label">Online Status:</span>
+    <span class="value" id="online">Loading...</span>
+
+    <span class="label">Do Not Track:</span>
+    <span class="value" id="dnt">Loading...</span>
+</div>
+
+<h2>Screen & Window</h2>
+<div class="info-grid" id="screen-info">
+    <span class="label">Screen Resolution:</span>
+    <span class="value" id="screen-res">Loading...</span>
+
+    <span class="label">Window Size:</span>
+    <span class="value" id="window-size">Loading...</span>
+
+    <span class="label">Device Pixel Ratio:</span>
+    <span class="value" id="pixel-ratio">Loading...</span>
+
+    <span class="label">Color Depth:</span>
+    <span class="value" id="color-depth">Loading...</span>
+
+    <span class="label">Touch Support:</span>
+    <span class="value" id="touch">Loading...</span>
+</div>
+
+<h2>GPU / Graphics</h2>
+<div class="info-grid" id="gpu-section">
+    <span class="label">WebGL Renderer:</span>
+    <span class="value" id="webgl-renderer">Loading...</span>
+
+    <span class="label">WebGL Vendor:</span>
+    <span class="value" id="webgl-vendor">Loading...</span>
+
+    <span class="label">WebGL Version:</span>
+    <span class="value" id="webgl-version">Loading...</span>
+
+    <span class="label">Unmasked Renderer:</span>
+    <span class="value" id="unmasked-renderer">Loading...</span>
+
+    <span class="label">Unmasked Vendor:</span>
+    <span class="value" id="unmasked-vendor">Loading...</span>
+</div>
+<canvas id="gl-canvas" width="1" height="1" style="display:none;"></canvas>
+
+<h2>JavaScript APIs</h2>
+<div class="info-grid" id="api-support">
+    <span class="label">ResizeObserver:</span>
+    <span class="value" id="api-resizeobserver">Loading...</span>
+
+    <span class="label">IntersectionObserver:</span>
+    <span class="value" id="api-intersectionobserver">Loading...</span>
+
+    <span class="label">MutationObserver:</span>
+    <span class="value" id="api-mutationobserver">Loading...</span>
+
+    <span class="label">WebSocket:</span>
+    <span class="value" id="api-websocket">Loading...</span>
+
+    <span class="label">WebGL:</span>
+    <span class="value" id="api-webgl">Loading...</span>
+
+    <span class="label">WebGL2:</span>
+    <span class="value" id="api-webgl2">Loading...</span>
+
+    <span class="label">Service Worker:</span>
+    <span class="value" id="api-serviceworker">Loading...</span>
+
+    <span class="label">Web Workers:</span>
+    <span class="value" id="api-webworker">Loading...</span>
+</div>
+
+<h2>Memory (if available)</h2>
+<div class="info-grid" id="memory-info">
+    <span class="label">Device Memory:</span>
+    <span class="value" id="device-memory">Loading...</span>
+
+    <span class="label">JS Heap Limit:</span>
+    <span class="value" id="heap-limit">Loading...</span>
+
+    <span class="label">JS Heap Used:</span>
+    <span class="value" id="heap-used">Loading...</span>
+</div>
+
+<h2>Crash Risk Assessment</h2>
+<div id="crash-risk"></div>
+
+<h2>Raw Navigator Object</h2>
+<details>
+    <summary>Click to expand (for debugging)</summary>
+    <pre id="navigator-raw" style="background:#16213e;padding:15px;overflow:auto;font-size:11px;"></pre>
+</details>
+
+<script>
+// Browser info
+document.getElementById('user-agent').textContent = navigator.userAgent;
+document.getElementById('platform').textContent = navigator.platform;
+document.getElementById('language').textContent = navigator.language;
+document.getElementById('cookies').textContent = navigator.cookieEnabled ? 'Yes' : 'No';
+document.getElementById('online').textContent = navigator.onLine ? 'Online' : 'Offline';
+document.getElementById('dnt').textContent = navigator.doNotTrack || 'Not set';
+
+// Detect browser engine
+function detectEngine() {
+    const ua = navigator.userAgent;
+    if (ua.includes('WebKitGTK')) return 'WebKitGTK (GTK WebKit)';
+    if (ua.includes('Chrome')) return 'Blink (Chromium)';
+    if (ua.includes('Firefox')) return 'Gecko (Firefox)';
+    if (ua.includes('Safari')) return 'WebKit (Safari)';
+    if (ua.includes('WebKit')) return 'WebKit (Generic)';
+    return 'Unknown';
+}
+document.getElementById('browser-engine').textContent = detectEngine();
+
+// Check for WebKitGTK
+const isWebKitGTK = navigator.userAgent.includes('WebKitGTK');
+if (isWebKitGTK) {
+    document.getElementById('browser-warning').innerHTML =
+        '<div class="warning"><strong>WebKitGTK Detected!</strong> This browser may crash with certain JavaScript patterns (like vue-resize\'s object hack) on NVIDIA GPUs.</div>';
+}
+
+// Screen info
+document.getElementById('screen-res').textContent = `${screen.width} x ${screen.height}`;
+document.getElementById('window-size').textContent = `${window.innerWidth} x ${window.innerHeight}`;
+document.getElementById('pixel-ratio').textContent = window.devicePixelRatio;
+document.getElementById('color-depth').textContent = `${screen.colorDepth}-bit`;
+document.getElementById('touch').textContent = ('ontouchstart' in window) ? 'Yes' : 'No';
+
+// GPU info via WebGL
+function getGPUInfo() {
+    const canvas = document.getElementById('gl-canvas');
+    let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    if (!gl) {
+        document.getElementById('webgl-renderer').textContent = 'WebGL not available';
+        document.getElementById('webgl-vendor').textContent = 'N/A';
+        document.getElementById('webgl-version').textContent = 'N/A';
+        document.getElementById('unmasked-renderer').textContent = 'N/A';
+        document.getElementById('unmasked-vendor').textContent = 'N/A';
+        return null;
+    }
+
+    document.getElementById('webgl-renderer').textContent = gl.getParameter(gl.RENDERER);
+    document.getElementById('webgl-vendor').textContent = gl.getParameter(gl.VENDOR);
+    document.getElementById('webgl-version').textContent = gl.getParameter(gl.VERSION);
+
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    if (debugInfo) {
+        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+        document.getElementById('unmasked-renderer').textContent = renderer;
+        document.getElementById('unmasked-vendor').textContent = vendor;
+        return { renderer, vendor };
+    } else {
+        document.getElementById('unmasked-renderer').textContent = 'Extension not available';
+        document.getElementById('unmasked-vendor').textContent = 'Extension not available';
+        return null;
+    }
+}
+const gpuInfo = getGPUInfo();
+
+// API support
+function checkAPI(name, test) {
+    const supported = test();
+    return `<span class="test-result ${supported ? 'pass' : 'fail'}">${supported ? 'Supported' : 'Not supported'}</span>`;
+}
+
+document.getElementById('api-resizeobserver').innerHTML = checkAPI('ResizeObserver', () => typeof ResizeObserver !== 'undefined');
+document.getElementById('api-intersectionobserver').innerHTML = checkAPI('IntersectionObserver', () => typeof IntersectionObserver !== 'undefined');
+document.getElementById('api-mutationobserver').innerHTML = checkAPI('MutationObserver', () => typeof MutationObserver !== 'undefined');
+document.getElementById('api-websocket').innerHTML = checkAPI('WebSocket', () => typeof WebSocket !== 'undefined');
+document.getElementById('api-webgl').innerHTML = checkAPI('WebGL', () => {
+    try { return !!document.createElement('canvas').getContext('webgl'); } catch(e) { return false; }
+});
+document.getElementById('api-webgl2').innerHTML = checkAPI('WebGL2', () => {
+    try { return !!document.createElement('canvas').getContext('webgl2'); } catch(e) { return false; }
+});
+document.getElementById('api-serviceworker').innerHTML = checkAPI('ServiceWorker', () => 'serviceWorker' in navigator);
+document.getElementById('api-webworker').innerHTML = checkAPI('WebWorker', () => typeof Worker !== 'undefined');
+
+// Memory info
+if (navigator.deviceMemory) {
+    document.getElementById('device-memory').textContent = navigator.deviceMemory + ' GB';
+} else {
+    document.getElementById('device-memory').textContent = 'Not available';
+}
+
+if (performance.memory) {
+    document.getElementById('heap-limit').textContent = (performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2) + ' MB';
+    document.getElementById('heap-used').textContent = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2) + ' MB';
+} else {
+    document.getElementById('heap-limit').textContent = 'Not available';
+    document.getElementById('heap-used').textContent = 'Not available';
+}
+
+// Crash risk assessment
+function assessCrashRisk() {
+    const risks = [];
+    let riskLevel = 'low';
+
+    if (isWebKitGTK) {
+        risks.push('WebKitGTK detected');
+        riskLevel = 'medium';
+    }
+
+    if (gpuInfo && gpuInfo.renderer && gpuInfo.renderer.toLowerCase().includes('nvidia')) {
+        risks.push('NVIDIA GPU detected');
+        if (isWebKitGTK) {
+            riskLevel = 'high';
+        }
+    }
+
+    if (gpuInfo && gpuInfo.vendor && gpuInfo.vendor.toLowerCase().includes('nvidia')) {
+        risks.push('NVIDIA vendor detected');
+        if (isWebKitGTK) {
+            riskLevel = 'high';
+        }
+    }
+
+    let html = '';
+    if (riskLevel === 'high') {
+        html = '<div class="error"><strong>HIGH RISK:</strong> WebKitGTK + NVIDIA detected. This system is likely to crash with vue-resize\'s &lt;object data="about:blank"&gt; technique.</div>';
+    } else if (riskLevel === 'medium') {
+        html = '<div class="warning"><strong>MEDIUM RISK:</strong> WebKitGTK detected. May have issues with certain JavaScript patterns on some GPUs.</div>';
+    } else {
+        html = '<div class="success"><strong>LOW RISK:</strong> No known problematic combination detected.</div>';
+    }
+
+    if (risks.length > 0) {
+        html += '<p>Detected factors: ' + risks.join(', ') + '</p>';
+    }
+
+    return html;
+}
+
+document.getElementById('crash-risk').innerHTML = assessCrashRisk();
+
+// Raw navigator dump
+const navProps = {};
+for (let prop in navigator) {
+    try {
+        const val = navigator[prop];
+        if (typeof val !== 'function') {
+            navProps[prop] = val;
+        }
+    } catch(e) {}
+}
+document.getElementById('navigator-raw').textContent = JSON.stringify(navProps, null, 2);
+
+// Update window size on resize
+window.addEventListener('resize', () => {
+    document.getElementById('window-size').textContent = `${window.innerWidth} x ${window.innerHeight}`;
+});
+</script>
+
+</body>
+</html>

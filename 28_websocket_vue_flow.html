@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 28: WebSocket + Vue + ECharts Flow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vuex/3.6.2/vuex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+</head>
+<body>
+<h1>Test 28: WebSocket → Vue → ECharts Flow</h1>
+<p>Simulates exact Mainsail data flow:</p>
+<ol>
+    <li>Receive large WebSocket message (simulated)</li>
+    <li>JSON.parse immediately</li>
+    <li>Vue.set() triggers reactivity</li>
+    <li>Multiple ECharts (SVG) update simultaneously</li>
+</ol>
+<div id="app">
+    <div id="status">{{ status }}</div>
+    <button @click="simulateWebSocketBurst">Simulate WebSocket Burst</button>
+    <div v-for="n in 4" :key="n" :id="'chart-' + n" style="width:100%;height:150px;margin:5px 0;border:1px solid #333;"></div>
+</div>
+
+<script>
+// Simulate the exact JSON structure Moonraker sends
+function createMoonrakerTempStoreResponse() {
+    const response = {
+        result: {}
+    };
+
+    const sensors = ['extruder', 'heater_bed', 'temperature_sensor chamber', 'temperature_fan exhaust'];
+    const historySize = 1200;
+
+    sensors.forEach(sensor => {
+        response.result[sensor] = {
+            temperatures: Array.from({length: historySize}, () => 180 + Math.random() * 40),
+            targets: Array.from({length: historySize}, () => 200),
+            powers: Array.from({length: historySize}, () => Math.random())
+        };
+    });
+
+    return response;
+}
+
+// Create large JSON string like WebSocket would receive
+function createLargeWebSocketMessage() {
+    const response = createMoonrakerTempStoreResponse();
+    return JSON.stringify(response);
+}
+
+const store = new Vuex.Store({
+    state: {
+        printer: {},
+        tempHistory: { source: [], series: [] },
+        socketConnected: false,
+        guiReady: false
+    },
+    mutations: {
+        setSocketConnected(state, val) { Vue.set(state, 'socketConnected', val); },
+        setGuiReady(state, val) { Vue.set(state, 'guiReady', val); },
+        setPrinterData(state, payload) {
+            // Like Mainsail's setData mutation - deep Vue.set
+            Object.keys(payload).forEach(key => {
+                if (typeof payload[key] === 'object' && payload[key] !== null) {
+                    if (!(key in state.printer)) {
+                        Vue.set(state.printer, key, {});
+                    }
+                    Object.keys(payload[key]).forEach(subkey => {
+                        Vue.set(state.printer[key], subkey, payload[key][subkey]);
+                    });
+                } else {
+                    Vue.set(state.printer, key, payload[key]);
+                }
+            });
+        },
+        setTempHistorySource(state, payload) {
+            Vue.set(state.tempHistory, 'source', payload);
+        }
+    },
+    actions: {
+        processWebSocketMessage({ commit, state }, jsonString) {
+            console.log('Processing WebSocket message of size:', jsonString.length);
+
+            // Step 1: JSON.parse (like webSocketClient.ts onmessage)
+            const parsed = JSON.parse(jsonString);
+            console.log('JSON parsed');
+
+            // Step 2: Process and commit to store (like Mainsail actions)
+            if (parsed.result) {
+                // Transform data like tempHistory/actions.ts init()
+                const maxHistory = 1200;
+                const now = new Date();
+                const tempDataset = [];
+
+                for (let i = 0; i < maxHistory; i++) {
+                    const entry = {
+                        date: new Date(now.getTime() - 1000 * (maxHistory - i))
+                    };
+
+                    Object.keys(parsed.result).forEach(sensorName => {
+                        const sensor = parsed.result[sensorName];
+                        if (sensor.temperatures) {
+                            entry[sensorName + '-temperature'] = sensor.temperatures[i];
+                        }
+                        if (sensor.targets) {
+                            entry[sensorName + '-target'] = sensor.targets[i];
+                        }
+                        if (sensor.powers) {
+                            entry[sensorName + '-power'] = sensor.powers[i];
+                        }
+                    });
+
+                    tempDataset.push(entry);
+                }
+
+                // Step 3: Commit to store (triggers Vue reactivity)
+                console.log('Committing', tempDataset.length, 'data points to store');
+                commit('setTempHistorySource', tempDataset);
+                console.log('Store updated');
+            }
+        }
+    }
+});
+
+const app = new Vue({
+    el: '#app',
+    store,
+    data: {
+        status: 'Ready to test',
+        charts: []
+    },
+    computed: {
+        source() { return this.$store.state.tempHistory.source; }
+    },
+    watch: {
+        source: {
+            handler(newVal) {
+                if (!newVal.length) return;
+                console.log('Source watcher triggered, updating', this.charts.length, 'charts');
+                this.updateAllCharts(newVal);
+            }
+        }
+    },
+    methods: {
+        initCharts() {
+            for (let i = 1; i <= 4; i++) {
+                const el = document.getElementById('chart-' + i);
+                // SVG renderer like Mainsail
+                const chart = echarts.init(el, null, { renderer: 'svg' });
+                chart.setOption({
+                    animation: false,
+                    grid: { top: 10, right: 10, bottom: 20, left: 40 },
+                    xAxis: { type: 'time' },
+                    yAxis: { type: 'value' },
+                    dataset: { source: [] },
+                    series: [
+                        { type: 'line', encode: { x: 'date', y: 'extruder-temperature' }, showSymbol: false },
+                        { type: 'line', encode: { x: 'date', y: 'heater_bed-temperature' }, showSymbol: false }
+                    ]
+                });
+                this.charts.push(chart);
+            }
+            this.status = 'Initialized ' + this.charts.length + ' SVG charts';
+        },
+        updateAllCharts(source) {
+            const start = performance.now();
+            this.charts.forEach((chart, i) => {
+                chart.setOption({ dataset: { source: source }});
+            });
+            const elapsed = performance.now() - start;
+            this.status = `Updated ${this.charts.length} charts with ${source.length} points in ${elapsed.toFixed(1)}ms`;
+            console.log(this.status);
+        },
+        simulateWebSocketBurst() {
+            this.status = 'Simulating WebSocket burst...';
+
+            // Create large message like Moonraker would send
+            const jsonMessage = createLargeWebSocketMessage();
+            console.log('Created simulated WebSocket message:', jsonMessage.length, 'bytes');
+
+            // Process like webSocketClient.ts would
+            this.$store.dispatch('processWebSocketMessage', jsonMessage);
+        }
+    },
+    mounted() {
+        this.$nextTick(() => {
+            this.initCharts();
+
+            // Auto-trigger after 1 second
+            setTimeout(() => {
+                this.status = 'Auto-triggering WebSocket simulation...';
+                this.simulateWebSocketBurst();
+            }, 1000);
+        });
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebKitGTK Crash Tests</title>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+h1 { color: #4CAF50; }
+h2 { color: #2196F3; margin-top: 30px; }
+.test-list {
+    list-style: none;
+    padding: 0;
+}
+.test-list li {
+    background: #16213e;
+    margin: 8px 0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.test-list a {
+    display: block;
+    padding: 15px 20px;
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.test-list a:hover {
+    background: #1f4068;
+}
+.test-num {
+    color: #4CAF50;
+    font-weight: bold;
+    margin-right: 10px;
+}
+.test-desc {
+    color: #888;
+    font-size: 0.9em;
+    margin-left: 35px;
+    display: block;
+}
+.crash { border-left: 4px solid #f44336; }
+.safe { border-left: 4px solid #4CAF50; }
+.info { border-left: 4px solid #2196F3; }
+.legend {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+}
+.summary {
+    background: #16213e;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<h1>WebKitGTK Crash Test Suite</h1>
+<p>Test pages for investigating Mainsail crash in WebKitGTK + NVIDIA</p>
+
+<div class="summary">
+    <strong>Root Cause Found:</strong> The <code>vue-resize</code> library uses an <code>&lt;object data="about:blank"&gt;</code> hack that crashes WebKitGTK on NVIDIA GPUs.
+    <br><br>
+    <strong>Fix:</strong> Replace vue-resize with native ResizeObserver API.
+</div>
+
+<div class="legend">
+    <div class="legend-item">
+        <div class="legend-color" style="background:#f44336;"></div>
+        <span>Causes crash</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background:#4CAF50;"></div>
+        <span>Safe / Works</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background:#2196F3;"></div>
+        <span>Info / Utility</span>
+    </div>
+</div>
+
+<h2>Diagnostic Pages</h2>
+<ul class="test-list">
+    <li class="info">
+        <a href="00_system_info.html">
+            <span class="test-num">00</span> System & Browser Information
+            <span class="test-desc">Shows GPU, browser engine, API support, crash risk assessment</span>
+        </a>
+    </li>
+</ul>
+
+<h2>Crash Test (The Bug)</h2>
+<ul class="test-list">
+    <li class="crash">
+        <a href="30_vue_resize_technique.html">
+            <span class="test-num">30</span> vue-resize technique (CRASHES!)
+            <span class="test-desc">Minimal test using &lt;object data="about:blank"&gt; - the root cause</span>
+        </a>
+    </li>
+</ul>
+
+<h2>Safe Tests (All Pass)</h2>
+<ul class="test-list">
+    <li class="safe">
+        <a href="01_basic.html">
+            <span class="test-num">01</span> Basic HTML
+            <span class="test-desc">Simple HTML/CSS/JS</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="02_websocket.html">
+            <span class="test-num">02</span> WebSocket
+            <span class="test-desc">WebSocket connectivity</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="03_canvas2d.html">
+            <span class="test-num">03</span> Canvas 2D
+            <span class="test-desc">Canvas 2D graphics rendering</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="04_webgl.html">
+            <span class="test-num">04</span> WebGL
+            <span class="test-desc">WebGL 3D rendering</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="05_animation.html">
+            <span class="test-num">05</span> Animation Loop
+            <span class="test-desc">CSS/JS animation loops</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="06_websocket_rapid.html">
+            <span class="test-num">06</span> Rapid WebSocket Updates
+            <span class="test-desc">High-frequency WebSocket messaging</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="07_vuejs.html">
+            <span class="test-num">07</span> Vue.js
+            <span class="test-desc">Vue.js framework rendering</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="08_threejs.html">
+            <span class="test-num">08</span> Three.js 3D
+            <span class="test-desc">Three.js 3D library</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="09_iframe.html">
+            <span class="test-num">09</span> iFrame Loading
+            <span class="test-desc">Iframe embedding</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="10_mainsail_direct.html">
+            <span class="test-num">10</span> Direct Mainsail Load
+            <span class="test-desc">Direct Mainsail page loading</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="11_mjpeg_stream.html">
+            <span class="test-num">11</span> MJPEG Webcam Stream
+            <span class="test-desc">MJPEG video streaming</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="12_heavy_dom.html">
+            <span class="test-num">12</span> Heavy DOM Update
+            <span class="test-desc">Heavy DOM manipulation</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="13_service_worker.html">
+            <span class="test-num">13</span> Service Worker
+            <span class="test-desc">Service Worker API</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="14_complex_css.html">
+            <span class="test-num">14</span> Complex CSS/Flexbox
+            <span class="test-desc">Complex CSS features and flexbox layouts</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="15_full_simulation.html">
+            <span class="test-num">15</span> Full Mainsail Simulation
+            <span class="test-desc">Full Mainsail simulation environment</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="16_vuetify.html">
+            <span class="test-num">16</span> Vuetify
+            <span class="test-desc">Vuetify Material Design (Mainsail's UI framework)</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="17_fluidd.html">
+            <span class="test-num">17</span> Fluidd Direct
+            <span class="test-desc">Fluidd Klipper UI</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="18_mainsail_proxy.html">
+            <span class="test-num">18</span> Mainsail via Fetch Proxy
+            <span class="test-desc">Mainsail loaded via fetch proxy</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="19_large_state.html">
+            <span class="test-num">19</span> Large Moonraker State
+            <span class="test-desc">Large state management</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="20_passive_events.html">
+            <span class="test-num">20</span> Non-Passive Event Listeners
+            <span class="test-desc">Passive event listener handling</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="21_large_json_parse.html">
+            <span class="test-num">21</span> Large JSON Processing
+            <span class="test-desc">Large JSON parsing and processing</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="22_upload_to_printer.html">
+            <span class="test-num">22</span> WebSocket from Printer Origin
+            <span class="test-desc">File upload to printer via WebSocket</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="23_overlayscrollbars.html">
+            <span class="test-num">23</span> OverlayScrollbars
+            <span class="test-desc">OverlayScrollbars library</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="24_echarts.html">
+            <span class="test-num">24</span> ECharts
+            <span class="test-desc">Temperature graphs like Mainsail</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="25_resize_observer.html">
+            <span class="test-num">25</span> Native ResizeObserver
+            <span class="test-desc">Native API - works fine!</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="26_intersection_observer.html">
+            <span class="test-num">26</span> IntersectionObserver
+            <span class="test-desc">vue-observe-visibility pattern</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="27_mainsail_exact.html">
+            <span class="test-num">27</span> Mainsail-Exact Pattern
+            <span class="test-desc">SVG ECharts + Vue + Vuex (without vue-resize)</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="28_websocket_vue_flow.html">
+            <span class="test-num">28</span> WebSocket + Vue Flow
+            <span class="test-desc">Simulates Moonraker data flow</span>
+        </a>
+    </li>
+    <li class="safe">
+        <a href="29_simultaneous_init.html">
+            <span class="test-num">29</span> Simultaneous Init
+            <span class="test-desc">Multiple components initializing at once</span>
+        </a>
+    </li>
+</ul>
+
+
+<h2>Test with WebKitGTK</h2>
+<pre style="background:#16213e;padding:15px;border-radius:5px;overflow:auto;">
+# Start HTTP server (from this directory)
+python3 -m http.server 8765
+
+# Run WebKitGTK test browser
+python3 test_webkit_standalone.py
+</pre>
+
+</body>
+</html>

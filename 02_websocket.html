@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test 2: WebSocket</title></head>
+<body>
+<h1>Test 2: WebSocket Connection</h1>
+<div id="status">Connecting to Moonraker WebSocket...</div>
+<script>
+// Try connecting to Moonraker's WebSocket (same as Mainsail does)
+const ws = new WebSocket('ws://192.168.1.96:7125/websocket');
+ws.onopen = () => {
+    document.getElementById('status').textContent = 'WebSocket CONNECTED!';
+    // Send a simple JSON-RPC request like Mainsail does
+    ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'printer.info',
+        id: 1
+    }));
+};
+ws.onmessage = (e) => {
+    document.getElementById('status').innerHTML += '<br>Received: ' + e.data.substring(0, 100) + '...';
+};
+ws.onerror = (e) => {
+    document.getElementById('status').textContent = 'WebSocket ERROR: ' + e;
+};
+ws.onclose = () => {
+    document.getElementById('status').innerHTML += '<br>WebSocket closed';
+};
+</script>
+</body>
+</html>

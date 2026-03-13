@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 16: Vuetify (Mainsail's UI Framework)</title>
+<link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.3.67/css/materialdesignicons.min.css" rel="stylesheet">
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <v-app theme="dark">
+        <v-app-bar color="primary">
+            <v-app-bar-title>Test 16: Vuetify Components</v-app-bar-title>
+        </v-app-bar>
+
+        <v-navigation-drawer permanent>
+            <v-list>
+                <v-list-item v-for="item in navItems" :key="item" :title="item" prepend-icon="mdi-printer-3d"></v-list-item>
+            </v-list>
+        </v-navigation-drawer>
+
+        <v-main>
+            <v-container>
+                <v-row>
+                    <v-col cols="4" v-for="card in cards" :key="card.title">
+                        <v-card>
+                            <v-card-title>{{ card.title }}</v-card-title>
+                            <v-card-text>
+                                <div class="text-h4">{{ card.value }}</div>
+                                <v-progress-linear :model-value="card.progress" color="primary"></v-progress-linear>
+                            </v-card-text>
+                        </v-card>
+                    </v-col>
+                </v-row>
+
+                <v-row>
+                    <v-col>
+                        <v-btn color="primary" @click="count++">Clicked {{ count }} times</v-btn>
+                        <v-btn color="error" class="ml-2">Emergency Stop</v-btn>
+                    </v-col>
+                </v-row>
+
+                <v-row>
+                    <v-col>
+                        <v-slider v-model="slider" label="Speed" thumb-label></v-slider>
+                    </v-col>
+                </v-row>
+            </v-container>
+        </v-main>
+    </v-app>
+</div>
+
+<script>
+const { createApp, ref } = Vue;
+const { createVuetify } = Vuetify;
+
+const vuetify = createVuetify({
+    theme: { defaultTheme: 'dark' }
+});
+
+createApp({
+    setup() {
+        const navItems = ref(['Dashboard', 'Console', 'Heightmap', 'G-Code Files', 'Settings']);
+        const cards = ref([
+            { title: 'Extruder', value: '205°C', progress: 85 },
+            { title: 'Bed', value: '60°C', progress: 60 },
+            { title: 'Chamber', value: '45°C', progress: 45 }
+        ]);
+        const count = ref(0);
+        const slider = ref(100);
+        return { navItems, cards, count, slider };
+    }
+}).use(vuetify).mount('#app');
+</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 15: Full Mainsail Simulation</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Roboto, sans-serif; background: #121212; color: white; }
+.header { background: #1e1e1e; padding: 15px; display: flex; justify-content: space-between; }
+.sidebar { width: 220px; background: #1e1e1e; position: fixed; height: 100vh; padding: 10px; }
+.main { margin-left: 230px; padding: 20px; }
+.card { background: #1e1e1e; border-radius: 4px; padding: 15px; margin: 10px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+.temp-value { font-size: 24px; color: #4caf50; }
+.status { padding: 4px 8px; border-radius: 4px; background: #4caf50; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="app">
+    <div class="header">
+        <span>{{ printerName }}</span>
+        <span class="status">{{ connectionStatus }}</span>
+    </div>
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <p v-for="item in navItems">{{ item }}</p>
+    </div>
+    <div class="main">
+        <div class="card">
+            <h3>Temperatures</h3>
+            <div class="grid">
+                <div v-for="(temp, name) in temperatures" :key="name">
+                    <div>{{ name }}</div>
+                    <div class="temp-value">{{ temp.toFixed(1) }}°C</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>Position</h3>
+            <div class="grid">
+                <div v-for="(val, axis) in position" :key="axis">
+                    <div>{{ axis.toUpperCase() }}</div>
+                    <div class="temp-value">{{ val.toFixed(2) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>WebSocket Messages: {{ messageCount }}</h3>
+            <div style="height:150px;overflow:auto;font-size:12px;font-family:monospace;">
+                <div v-for="msg in messages.slice(-20)">{{ msg }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, reactive } = Vue;
+
+createApp({
+    setup() {
+        const printerName = ref('RatRig V-Core 3');
+        const connectionStatus = ref('Connecting...');
+        const navItems = ref(['Dashboard', 'Console', 'Heightmap', 'G-Code Files', 'Settings']);
+        const temperatures = reactive({ Extruder: 25.0, Bed: 25.0, Chamber: 25.0 });
+        const position = reactive({ x: 0, y: 0, z: 0 });
+        const messages = ref([]);
+        const messageCount = ref(0);
+
+        // Connect to Moonraker WebSocket
+        const ws = new WebSocket('ws://192.168.1.96:7125/websocket');
+
+        ws.onopen = () => {
+            connectionStatus.value = 'Connected';
+            messages.value.push('WebSocket connected');
+
+            // Subscribe like Mainsail does
+            ws.send(JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'printer.objects.subscribe',
+                params: {
+                    objects: {
+                        heater_bed: null,
+                        extruder: null,
+                        toolhead: null,
+                        gcode_move: null,
+                        print_stats: null
+                    }
+                },
+                id: 1
+            }));
+        };
+
+        ws.onmessage = (e) => {
+            messageCount.value++;
+            const data = JSON.parse(e.data);
+            messages.value.push(e.data.substring(0, 60) + '...');
+
+            // Update reactive state like Mainsail
+            if (data.result?.status || data.params?.[0]) {
+                const status = data.result?.status || data.params?.[0];
+                if (status.extruder?.temperature) temperatures.Extruder = status.extruder.temperature;
+                if (status.heater_bed?.temperature) temperatures.Bed = status.heater_bed.temperature;
+                if (status.toolhead?.position) {
+                    position.x = status.toolhead.position[0] || 0;
+                    position.y = status.toolhead.position[1] || 0;
+                    position.z = status.toolhead.position[2] || 0;
+                }
+            }
+        };
+
+        ws.onerror = () => {
+            connectionStatus.value = 'Error';
+            messages.value.push('WebSocket error');
+        };
+
+        ws.onclose = () => {
+            connectionStatus.value = 'Disconnected';
+            messages.value.push('WebSocket closed');
+        };
+
+        return { printerName, connectionStatus, navItems, temperatures, position, messages, messageCount };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>

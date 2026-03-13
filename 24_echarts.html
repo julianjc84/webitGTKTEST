@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 24: ECharts (Temperature Graphs)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+</head>
+<body>
+<h1>Test 24: ECharts (like Mainsail temperature graphs)</h1>
+<div id="chart" style="width:100%;height:400px;"></div>
+<div id="status">Initializing ECharts...</div>
+
+<script>
+const chart = echarts.init(document.getElementById('chart'));
+
+// Temperature-like data
+const data = [];
+for (let i = 0; i < 100; i++) {
+    data.push([i, 200 + Math.random() * 10]);
+}
+
+const option = {
+    title: { text: 'Temperature History' },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'value', name: 'Time' },
+    yAxis: { type: 'value', name: 'Temp (°C)' },
+    series: [{
+        type: 'line',
+        data: data,
+        smooth: true
+    }]
+};
+
+chart.setOption(option);
+document.getElementById('status').textContent = 'ECharts initialized! Updating...';
+
+// Simulate real-time updates like Mainsail
+let time = 100;
+setInterval(() => {
+    data.push([time++, 200 + Math.random() * 10]);
+    if (data.length > 200) data.shift();
+    chart.setOption({ series: [{ data: data }] });
+}, 250);
+</script>
+</body>
+</html>

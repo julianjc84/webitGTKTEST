@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test 14: Complex CSS/Flexbox</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; }
+.header { background: #1976d2; color: white; padding: 10px; display: flex; justify-content: space-between; }
+.sidebar { width: 200px; background: #f5f5f5; padding: 10px; position: fixed; height: 100vh; }
+.main { margin-left: 210px; padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+.card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 15px; transition: transform 0.2s; }
+.card:hover { transform: translateY(-2px); }
+.progress { height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); animation: progress 2s infinite; }
+@keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="header">
+    <span>Test 14: Mainsail-like Layout</span>
+    <span>Status: Online</span>
+</div>
+<div class="sidebar">
+    <h3>Navigation</h3>
+    <p>Dashboard</p>
+    <p>Console</p>
+    <p>Heightmap</p>
+    <p>Settings</p>
+</div>
+<div class="main">
+    <h2>Dashboard</h2>
+    <div class="grid" id="grid"></div>
+</div>
+<script>
+const grid = document.getElementById('grid');
+const cards = ['Extruder', 'Bed', 'Chamber', 'Fan', 'Speed', 'Flow', 'Z-Offset', 'Pressure Advance'];
+cards.forEach(name => {
+    grid.innerHTML += `
+    <div class="card">
+        <h3>${name}</h3>
+        <div class="progress"><div class="progress-bar"></div></div>
+        <p>${Math.floor(Math.random()*100)}%</p>
+    </div>`;
+});
+</script>
+</body>
+</html>
